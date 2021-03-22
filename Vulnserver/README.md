@@ -80,3 +80,33 @@ We add this to our exploit. we can also place a NOP padding (x90) to avoid inter
 # GAINING ROOT
 
 * We set up a listener, we can use msfconsole or nc to listen on the port we specified and then send the exploit
+
+## EGG HUNTER
+
+* In classic stack based BO, the buffer size is big enough to hold the shellcode, but what will happen if there isn't enough consecutive memory space available for the shellcode to fit in after overwrite happens.
+* An egghunter is a relatively small piece of code that can search the virtual memory space safely(avoiding access violations) to identify a specific string, which is then used to indicate where the start of the exploit shellcode resides
+
+example: If the shellcode were positioned in a much earlier part of the input buffer payload, but somewhere too far away to access via an available JMP or CALL instruction. Using an egghunter is considerably more beneficial in scenarios where there are protections such as ASLR, where virtual memory is randomised.
+
+# HOW THE EGGHUNTER WORKS
+
+* Essnetially, the egghunter code will initially set the EBX register to the start of the virtual memory address space(by going to the end of the address page and incrememnting EBX by 1) and then gradually work its way through whilst allowing for error handling.
+* The code will compare the value of the virtual memory address to that of the egg's string. Once this is found once, the code loops and continues till it finds the second value.
+* In summary, what you need to know is that the egg hunter contains a user defined 4-byte tag, it will then search through memory until it finds this tag twice repeated (if the tag is "1234" it will look for "12341234"). When it finds the tag it will redirect execution flow to just after the tag and so to our shellcode.
+* It then sets a JMP to the memory address immediately following the egg
+
+# NTDISPLAYSTRING
+
+* Ntdisplaystring egg hunter shellcode uses only 32 bytes of memory space. This is what we will be discussing here.
+* The actual system call that was used to accomplish the egg hunting operation is the NtDisplayString system call
+* This system call is used to display text to the blue screen. In this implementation a system call is used to validate an address range.
+* For the purposes of an egg hunter, it is abused due to the fact that its only argument is a pointer that is read from and not written to, thus making it a most desirable choice.
+* A disadvantage for this payload is that it relies on the system call number for NtDisplayString not changing. In all versions of windows it remains 0x43 but it is entirely possible that the number may change in future.
+* If we construct NtDisplayString in hex it would look like this
+
+* Here "\x90\x50\x90\x50" is replaced by the custom tag w00t.
+So the resulting code looks like this:
+"\x66\x81\xca\xff\x0f\x42\x52\x6a\x02\x58\xcd\x2e\x3
+* As you can see from above, the NtdisplayString code is used as a search mechanism to search for the custom tag wootwoot in memory and start the execution of shellcode
+* In the Ntdisplaystring implementation, the edx register is used as the register that holds the pointer that is to be validated throughout the course of the search operation.
+* The return value of the sysetm call is compared against 0x5 which is the low byte of STATUS ACCESS VIOLATION, or 0xc0000005
